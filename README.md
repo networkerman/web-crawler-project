@@ -1,238 +1,358 @@
-# Web Crawler for Developer Documentation Sites
+# Enterprise-Grade Async Web Crawler
 
-A robust, ethical web crawler designed to scrape developer documentation websites while respecting robots.txt and implementing proper error handling. This tool is perfect for building RAG (Retrieval-Augmented Generation) systems by collecting comprehensive documentation URLs.
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/your-username/web-crawler)
+
+A robust, scalable, and enterprise-ready web crawler designed for scraping developer documentation sites with advanced features including dynamic content handling, state persistence, and comprehensive error handling.
 
 ## 🚀 Features
 
-- 🕷️ **Domain-Bound Crawling**: Only follows links within the same domain
-- 🤖 **Robots.txt Compliance**: Respects website crawling policies
-- 🚫 **Smart URL Filtering**: Skips non-content files and invalid URLs
-- ⏱️ **Rate Limiting**: Configurable delays between requests
-- 📊 **Progress Tracking**: Real-time logging and progress indicators
-- 🛡️ **Error Handling**: Robust error handling for network issues
-- 💾 **Output Management**: Saves results to organized text files
+### Core Capabilities
+- **Asynchronous Architecture**: Built with `asyncio` and `httpx` for high-performance concurrent crawling
+- **Dynamic Content Support**: Integrates Playwright for JavaScript-rendered content
+- **State Persistence**: Save and resume crawl sessions with JSON and SQLite storage
+- **Robust Error Handling**: Configurable retry mechanisms with exponential backoff
+- **Rate Limiting**: Built-in rate limiting and request throttling
+- **Robots.txt Compliance**: Respects robots.txt files for ethical crawling
 
-## 📁 Project Structure
+### Enterprise Features
+- **Configuration Management**: YAML-based configuration with CLI overrides
+- **Progress Tracking**: Real-time progress bars with detailed statistics
+- **Comprehensive Logging**: Structured logging with multiple output formats
+- **Database Storage**: SQLite backend for crawl data and statistics
+- **Resumability**: Interrupt and resume crawls without losing progress
+- **Performance Metrics**: Detailed timing and performance analytics
 
-```
-web-crawler-project/
-├── src/
-│   └── web_crawler/
-│       ├── __init__.py      # Package initialization
-│       ├── crawler.py       # Core WebCrawler class
-│       └── cli.py          # Command-line interface
-├── tests/
-│   ├── __init__.py
-│   └── test_crawler.py     # Unit tests
-├── examples/
-│   └── basic_usage.py      # Usage examples
-├── docs/                   # Documentation
-├── pyproject.toml          # Project configuration
-├── requirements.txt         # Runtime dependencies
-├── requirements-dev.txt     # Development dependencies
-└── README.md               # This file
-```
+### Advanced Capabilities
+- **Intelligent JavaScript Detection**: Automatically determines when rendering is needed
+- **Depth and URL Limits**: Configurable crawling boundaries
+- **Concurrent Processing**: Multi-worker architecture for scalability
+- **Content Type Filtering**: Smart filtering of non-HTML content
+- **URL Normalization**: Consistent URL handling and deduplication
 
-## 🛠️ Installation
+## 📦 Installation
 
-### Option 1: Install from source
+### Prerequisites
+- Python 3.8 or higher
+- pip package manager
+
+### Basic Installation
 ```bash
 # Clone the repository
-git clone <your-repo-url>
-cd web-crawler-project
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+git clone https://github.com/your-username/web-crawler.git
+cd web-crawler
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Install in development mode
-pip install -e .
+# Install Playwright browsers (for dynamic content support)
+playwright install
 ```
 
-### Option 2: Install development dependencies
-```bash
-pip install -r requirements-dev.txt
-```
-
-## 🚀 Usage
-
-### Command Line Interface
-
-```bash
-# Basic usage
-python -m web_crawler.cli "https://developers.facebook.com/docs/whatsapp/cloud-api"
-
-# With custom settings
-python -m web_crawler.cli "https://docs.webengage.com/" --delay 2.0 --timeout 60
-
-# Custom output file
-python -m web_crawler.cli "https://docs.example.com/" --output my_urls.txt
-
-# Verbose logging
-python -m web_crawler.cli "https://docs.example.com/" --verbose
-```
-
-### Programmatic Usage
-
-```python
-from web_crawler import WebCrawler
-
-# Initialize crawler
-crawler = WebCrawler(
-    start_url="https://docs.example.com/",
-    delay=1.5,
-    timeout=45
-)
-
-# Perform crawl
-unique_urls = crawler.crawl()
-
-# Save results
-crawler.save_urls_to_file("output.txt")
-```
-
-### Examples
-
-Run the included examples:
-```bash
-# Basic usage example
-python examples/basic_usage.py
-
-# Run tests
-python -m pytest tests/
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=src --cov-report=html
-
-# Run specific test file
-pytest tests/test_crawler.py -v
-```
-
-## 🔧 Configuration
-
-The project includes several configuration files:
-
-- **`pyproject.toml`**: Modern Python project configuration
-- **`pyrightconfig.json`**: Pyright/PyLance configuration for VS Code
-- **`.vscode/settings.json`**: VS Code workspace settings
-- **`requirements.txt`**: Runtime dependencies
-- **`requirements-dev.txt`**: Development dependencies
-
-## 📊 Output Format
-
-The crawler generates a structured output file:
-
-```
-# Web Crawler Results
-# Domain: https://developers.facebook.com
-# Start URL: https://developers.facebook.com/docs/whatsapp/cloud-api
-# Total URLs found: 150
-# Generated at: 2024-01-15 14:30:25
-
-https://developers.facebook.com/docs/whatsapp/cloud-api
-https://developers.facebook.com/docs/whatsapp/cloud-api/guides
-https://developers.facebook.com/docs/whatsapp/cloud-api/reference
-...
-```
-
-## 🏗️ Architecture
-
-### Core Components
-
-1. **WebCrawler Class**: Main crawler implementation
-2. **URL Queue Management**: Efficient deque-based processing
-3. **Link Discovery**: HTML parsing with BeautifulSoup
-4. **Robots.txt Handling**: Automatic compliance checking
-5. **Error Handling**: Robust network and parsing error management
-
-### Key Methods
-
-- `crawl()`: Main crawling loop
-- `_fetch_page()`: HTTP request handling
-- `_extract_links()`: HTML link extraction
-- `_is_allowed_by_robots()`: Robots.txt compliance
-- `save_urls_to_file()`: Output generation
-
-## 🚨 Ethical Considerations
-
-This crawler is designed with ethical web scraping in mind:
-
-- **Respects robots.txt** - Follows website crawling policies
-- **Rate limiting** - Configurable delays prevent server overload
-- **User-Agent identification** - Clear identification of the crawler
-- **Domain boundaries** - Only crawls within the target domain
-- **Content filtering** - Skips non-HTML content and binary files
-
-## 🎯 Use Cases
-
-### RAG Implementation
-Perfect for building documentation-based RAG systems:
-1. **Crawl documentation sites** to collect all relevant URLs
-2. **Process content** from discovered URLs
-3. **Build vector database** for semantic search
-4. **Generate responses** based on documentation context
-
-### Documentation Auditing
-- **Find broken links** in documentation
-- **Map documentation structure** and coverage
-- **Identify missing content** areas
-
-### Content Migration
-- **Inventory existing content** before migration
-- **Plan content restructuring** based on current structure
-- **Validate migration completeness**
-
-## 🚀 Performance Tips
-
-- **Adjust delay** based on target server capacity
-- **Monitor logs** for optimal crawling speed
-- **Use appropriate timeouts** for your network conditions
-- **Consider running during off-peak hours** for large sites
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Setup
-
+### Development Installation
 ```bash
 # Install development dependencies
 pip install -r requirements-dev.txt
 
-# Run code formatting
-black src/ tests/ examples/
+# Install the package in development mode
+pip install -e .
+```
 
-# Run linting
-flake8 src/ tests/ examples/
+## 🛠️ Quick Start
 
-# Run type checking
+### Basic Usage
+```python
+import asyncio
+from web_crawler import AsyncWebCrawler, ConfigManager
+
+async def main():
+    # Create configuration
+    config = ConfigManager()
+    config.set('crawler.start_url', 'https://docs.python.org/3/')
+    config.set('crawler.max_urls', 100)
+    
+    # Initialize and run crawler
+    crawler = AsyncWebCrawler(config)
+    unique_urls = await crawler.crawl()
+    
+    # Save results
+    await crawler.save_urls_to_file('results.txt')
+    print(f"Found {len(unique_urls)} unique URLs")
+
+asyncio.run(main())
+```
+
+### Command Line Usage
+```bash
+# Basic crawl
+python -m web_crawler.enhanced_cli crawl "https://docs.python.org/3/"
+
+# With custom configuration
+python -m web_crawler.enhanced_cli crawl "https://docs.python.org/3/" \
+    --max-urls 100 \
+    --max-depth 3 \
+    --max-concurrent 10 \
+    --enable-playwright
+
+# Show configuration
+python -m web_crawler.enhanced_cli config
+
+# View statistics
+python -m web_crawler.enhanced_cli stats
+
+# Clean up old data
+python -m web_crawler.enhanced_cli cleanup --days 30
+```
+
+## ⚙️ Configuration
+
+### Configuration File (config.yaml)
+```yaml
+crawler:
+  start_url: "https://docs.example.com"
+  delay: 1.0
+  timeout: 30
+  max_concurrent: 10
+  max_urls: 0
+  max_depth: 0
+
+retry:
+  max_retries: 3
+  base_delay: 1.0
+  max_delay: 60.0
+
+dynamic_content:
+  enable_playwright: true
+  page_load_timeout: 10000
+  network_idle_timeout: 2000
+
+output:
+  filename: "crawled_urls.txt"
+  save_state: true
+  state_file: "crawl_state.json"
+  database_file: "crawl_data.db"
+
+logging:
+  level: "INFO"
+  log_file: "crawler.log"
+  console_logging: true
+  file_logging: true
+```
+
+### CLI Configuration Overrides
+All configuration options can be overridden via command line arguments:
+```bash
+python -m web_crawler.enhanced_cli crawl "https://example.com" \
+    --delay 0.5 \
+    --max-concurrent 20 \
+    --max-urls 1000 \
+    --enable-playwright \
+    --max-retries 5
+```
+
+## 🔧 Advanced Usage
+
+### Dynamic Content Handling
+```python
+from web_crawler import DynamicContentHandler
+
+async def handle_dynamic_content():
+    async with DynamicContentHandler(
+        enable_playwright=True,
+        page_load_timeout=10000
+    ) as handler:
+        # Render JavaScript-heavy page
+        content = await handler.render_page("https://spa.example.com")
+        
+        # Extract links from rendered content
+        links = await handler.extract_links_from_rendered("https://spa.example.com", content)
+        
+        # Take screenshot
+        screenshot = await handler.take_screenshot("https://spa.example.com")
+        
+        # Get performance metrics
+        metrics = await handler.get_page_metrics("https://spa.example.com")
+```
+
+### State Management
+```python
+from web_crawler import StateManager
+
+# Initialize state manager
+state_manager = StateManager(
+    state_file="crawl_state.json",
+    database_file="crawl_data.db"
+)
+
+# Save state
+state_manager.save_state_json(crawl_state)
+
+# Load state
+crawl_state = state_manager.load_state_json()
+
+# Get statistics
+stats = state_manager.get_crawl_statistics()
+```
+
+### Custom Configuration
+```python
+from web_crawler import ConfigManager
+
+# Create configuration
+config = ConfigManager()
+
+# Set values using dot notation
+config.set('crawler.max_concurrent', 20)
+config.set('retry.max_retries', 5)
+config.set('dynamic_content.enable_playwright', True)
+
+# Get values
+max_concurrent = config.get('crawler.max_concurrent')
+max_retries = config.get('retry.max_retries')
+
+# Validate configuration
+if config.validate_config():
+    print("Configuration is valid")
+```
+
+## 📊 Performance and Monitoring
+
+### Progress Tracking
+The crawler provides real-time progress updates:
+- URLs crawled vs. total discovered
+- Current crawl depth
+- Queue size
+- Processing rate
+- Estimated completion time
+
+### Statistics and Metrics
+Comprehensive statistics are available:
+- Total URLs discovered and crawled
+- Success/failure rates
+- Response times
+- Content types and sizes
+- Crawl duration and efficiency
+
+### Database Analytics
+SQLite backend provides:
+- Historical crawl data
+- Performance trends
+- Error analysis
+- Session management
+
+## 🚨 Error Handling
+
+### Retry Mechanisms
+- **Exponential Backoff**: Intelligent retry delays
+- **Configurable Limits**: Set maximum retry attempts
+- **Error Classification**: Different handling for different error types
+- **Graceful Degradation**: Continue crawling despite individual failures
+
+### Error Types Handled
+- Network connection errors
+- HTTP status errors (4xx, 5xx)
+- Timeout errors
+- Content parsing errors
+- JavaScript rendering errors
+
+## 🔒 Security and Ethics
+
+### Robots.txt Compliance
+- Automatic robots.txt parsing
+- Respect for crawl-delay directives
+- User-agent identification
+- Configurable compliance levels
+
+### Rate Limiting
+- Configurable requests per second
+- Burst handling
+- Domain-specific limits
+- Automatic throttling
+
+### Ethical Considerations
+- Respect for server resources
+- Configurable delays between requests
+- User-agent identification
+- Compliance with website terms of service
+
+## 🧪 Testing and Development
+
+### Running Examples
+```bash
+# Run comprehensive examples
+python examples/enterprise_usage.py
+
+# Test dynamic content handling
+python -m web_crawler.enhanced_cli test "https://example.com" --screenshot --metrics
+```
+
+### Development Setup
+```bash
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Run tests
+pytest
+
+# Code formatting
+black src/ tests/
+
+# Linting
+flake8 src/ tests/
+
+# Type checking
 mypy src/
 ```
 
-## 📝 License
+## 📈 Scaling Considerations
+
+### Performance Optimization
+- **Concurrent Workers**: Configurable worker pool size
+- **Connection Pooling**: Efficient HTTP client reuse
+- **Memory Management**: Streaming content processing
+- **Async I/O**: Non-blocking operations throughout
+
+### Resource Management
+- **Browser Instances**: Efficient Playwright browser management
+- **Database Connections**: Connection pooling for SQLite
+- **File I/O**: Asynchronous file operations
+- **Memory Usage**: Configurable limits and cleanup
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Workflow
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Ensure all tests pass
+6. Submit a pull request
+
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Built with [requests](https://requests.readthedocs.io/) for HTTP handling
-- HTML parsing powered by [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/)
-- XML parsing with [lxml](https://lxml.de/)
+- Built with [httpx](https://www.python-httpx.org/) for async HTTP operations
+- [Playwright](https://playwright.dev/) for dynamic content rendering
+- [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) for HTML parsing
+- [Click](https://click.palletsprojects.com/) for CLI framework
+- [tqdm](https://tqdm.github.io/) for progress bars
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/your-username/web-crawler/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/your-username/web-crawler/discussions)
+- **Documentation**: [Wiki](https://github.com/your-username/web-crawler/wiki)
+
+## 🔄 Migration from v1.0
+
+If you're upgrading from version 1.0, see our [Migration Guide](MIGRATION.md) for details on the new async API and configuration system.
 
 ---
 
-**Happy Crawling! 🕷️✨**
+**Note**: This crawler is designed for ethical web scraping. Please respect robots.txt files, implement appropriate delays, and comply with website terms of service.

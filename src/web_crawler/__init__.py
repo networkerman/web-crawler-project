@@ -1,14 +1,29 @@
+#!/usr/bin/env python3
 """
-Web Crawler Package
+Enterprise-Grade Async Web Crawler Package
 
-A robust, ethical web crawler designed to scrape developer documentation websites
-while respecting robots.txt and implementing proper error handling.
+A robust, scalable web crawler with dynamic content support, state persistence,
+and advanced error handling for developer documentation sites.
 """
 
-from .crawler import WebCrawler
-
-__version__ = "1.0.0"
+__version__ = "2.0.0"
 __author__ = "AI Assistant"
 __license__ = "MIT"
 
-__all__ = ["WebCrawler"]
+# Core classes
+from .async_crawler import AsyncWebCrawler
+from .config_manager import ConfigManager
+from .state_manager import StateManager, CrawlState
+from .dynamic_handler import DynamicContentHandler
+
+# Legacy support (deprecated)
+from .crawler import WebCrawler
+
+__all__ = [
+    'AsyncWebCrawler',
+    'ConfigManager', 
+    'StateManager',
+    'CrawlState',
+    'DynamicContentHandler',
+    'WebCrawler',  # Legacy
+]

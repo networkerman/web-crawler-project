@@ -1,0 +1,97 @@
+# Web Crawler Configuration File
+# This file contains default settings for the enterprise-grade web crawler
+
+# Crawler Settings
+crawler:
+  # Starting URL for the crawl
+  start_url: "https://docs.example.com"
+  
+  # Delay between requests in seconds
+  delay: 1.0
+  
+  # Request timeout in seconds
+  timeout: 30
+  
+  # Maximum number of concurrent requests
+  max_concurrent: 10
+  
+  # Maximum number of URLs to crawl (0 = unlimited)
+  max_urls: 0
+  
+  # Maximum depth for crawling (0 = unlimited)
+  max_depth: 0
+
+# Retry Settings
+retry:
+  # Maximum number of retries for failed requests
+  max_retries: 3
+  
+  # Base delay for exponential backoff (seconds)
+  base_delay: 1.0
+  
+  # Maximum delay for exponential backoff (seconds)
+  max_delay: 60.0
+
+# Dynamic Content Settings
+dynamic_content:
+  # Enable Playwright for JavaScript rendering
+  enable_playwright: true
+  
+  # Wait time for page load in milliseconds
+  page_load_timeout: 10000
+  
+  # Wait time for network idle in milliseconds
+  network_idle_timeout: 2000
+  
+  # User agent for browser
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+
+# Output Settings
+output:
+  # Default output filename
+  filename: "crawled_urls.txt"
+  
+  # Save crawl state for resumability
+  save_state: true
+  
+  # State file location
+  state_file: "crawl_state.json"
+  
+  # Database file for SQLite storage
+  database_file: "crawl_data.db"
+
+# Logging Settings
+logging:
+  # Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+  level: "INFO"
+  
+  # Log file location
+  log_file: "crawler.log"
+  
+  # Enable console logging
+  console_logging: true
+  
+  # Enable file logging
+  file_logging: true
+  
+  # Log format
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# Robots.txt Settings
+robots:
+  # Respect robots.txt
+  respect_robots: true
+  
+  # User agent for robots.txt checking
+  user_agent: "WebCrawler/2.0 (+https://github.com/your-repo)"
+
+# Rate Limiting
+rate_limit:
+  # Enable rate limiting
+  enabled: true
+  
+  # Requests per second
+  requests_per_second: 1.0
+  
+  # Burst size
+  burst_size: 5

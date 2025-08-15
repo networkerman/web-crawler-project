@@ -1,3 +1,23 @@
-requests>=2.31.0
+# Core dependencies
+httpx>=0.25.0
 beautifulsoup4>=4.12.0
 lxml>=4.9.0
+
+# Async and concurrency
+asyncio-throttle>=1.0.2
+aiofiles>=23.2.0
+
+# Dynamic content handling
+playwright>=1.40.0
+
+# Configuration and CLI
+pyyaml>=6.0.1
+click>=8.1.7
+rich>=13.7.0
+tqdm>=4.66.0
+
+# State persistence
+sqlite3  # Built-in Python module
+
+# Enhanced logging
+structlog>=23.2.0
