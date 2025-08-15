@@ -1,30 +1,24 @@
 #!/usr/bin/env python3
 """
-Enterprise-Grade Web Crawler Usage Examples
+Enterprise Web Crawler Usage Examples
 
-This script demonstrates the advanced features of the new async web crawler
-including configuration management, state persistence, dynamic content handling,
-and comprehensive error handling.
+This script demonstrates the advanced features of the web crawler.
+Note: Install the package first with: pip install -e .
 """
 
 import asyncio
-import sys
-from pathlib import Path
-
-# Add the src directory to the path so we can import the package
-sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
-
 from web_crawler import (
-    AsyncWebCrawler, 
+    WebCrawler,  # Note: renamed from AsyncWebCrawler
     ConfigManager, 
     StateManager,
-    DynamicContentHandler
+    DynamicContentHandler,
+    crawl_website  # New convenience function
 )
 
 
 async def basic_async_crawl_example():
-    """Basic example of using the async crawler."""
-    print("🚀 Basic Async Crawl Example")
+    """Basic example of using the web crawler."""
+    print("🚀 Basic Web Crawler Example")
     print("=" * 50)
     
     # Create configuration
@@ -37,7 +31,7 @@ async def basic_async_crawl_example():
     config.set('dynamic_content.enable_playwright', False)  # Disable for basic example
     
     # Initialize crawler
-    crawler = AsyncWebCrawler(config)
+    crawler = WebCrawler(config)
     
     # Run the crawl
     print(f"Starting crawl of: {config.get('crawler.start_url')}")
@@ -82,7 +76,7 @@ async def dynamic_content_example():
     config.set('dynamic_content.page_load_timeout', 10000)
     
     # Initialize crawler
-    crawler = AsyncWebCrawler(config)
+    crawler = WebCrawler(config)
     
     print(f"Starting dynamic crawl of: {config.get('crawler.start_url')}")
     print("JavaScript rendering: Enabled")
@@ -102,6 +96,34 @@ async def dynamic_content_example():
         
     except Exception as e:
         print(f"❌ Error during dynamic crawl: {e}")
+
+
+async def convenience_function_example():
+    """Example using the new crawl_website convenience function."""
+    print("\n⚡ Convenience Function Example")
+    print("=" * 50)
+    
+    print("Using crawl_website() for simple one-off crawls...")
+    
+    try:
+        # Simple one-liner crawl
+        urls = crawl_website(
+            "https://httpbin.org", 
+            max_urls=5, 
+            max_depth=1
+        )
+        
+        print(f"✅ Convenience crawl completed!")
+        print(f"📊 Total URLs found: {len(urls)}")
+        
+        # Save results
+        with open('convenience_crawl_results.txt', 'w') as f:
+            for url in sorted(urls):
+                f.write(f"{url}\n")
+        print(f"💾 Results saved to: convenience_crawl_results.txt")
+        
+    except Exception as e:
+        print(f"❌ Error during convenience crawl: {e}")
 
 
 async def state_persistence_example():
@@ -127,7 +149,7 @@ async def state_persistence_example():
     )
     
     # Initialize crawler with state manager
-    crawler = AsyncWebCrawler(config, state_manager)
+    crawler = WebCrawler(config, state_manager)
     
     print(f"Starting crawl with state persistence: {config.get('crawler.start_url')}")
     print(f"State file: {config.get('output.state_file')}")
@@ -198,7 +220,7 @@ async def configuration_management_example():
         print(f"\n💾 Configuration saved to: {config_file}")
     
     # Initialize crawler with custom config
-    crawler = AsyncWebCrawler(config)
+    crawler = WebCrawler(config)
     
     print(f"\n🚀 Starting crawl with custom configuration...")
     print(f"Target: {config.get('crawler.start_url')}")
@@ -239,7 +261,7 @@ async def error_handling_example():
     config.set('retry.max_delay', 5.0)
     
     # Initialize crawler
-    crawler = AsyncWebCrawler(config)
+    crawler = WebCrawler(config)
     
     print(f"Starting error handling test with: {config.get('crawler.start_url')}")
     print(f"Max retries: {config.get('retry.max_retries')}")
@@ -266,13 +288,14 @@ async def main():
     """Run all examples."""
     print("🕷️  Enterprise-Grade Web Crawler Examples")
     print("=" * 60)
-    print("This script demonstrates the advanced features of the new async web crawler.")
+    print("This script demonstrates the advanced features of the web crawler.")
     print()
     
     try:
         # Run examples
         await basic_async_crawl_example()
         await dynamic_content_example()
+        await convenience_function_example()
         await state_persistence_example()
         await configuration_management_example()
         await error_handling_example()
@@ -282,6 +305,7 @@ async def main():
         print("\nGenerated files:")
         print("  - basic_crawl_results.txt")
         print("  - dynamic_crawl_results.txt")
+        print("  - convenience_crawl_results.txt")
         print("  - django_crawl_results.txt")
         print("  - fastapi_crawl_results.txt")
         print("  - custom_config.yaml")

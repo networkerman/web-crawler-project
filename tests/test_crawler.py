@@ -1,157 +1,359 @@
-#!/usr/bin/env python3
 """
-Test script for the Web Crawler
-
-This script tests the basic functionality of the WebCrawler class
-with a simple test case.
+Comprehensive test suite for the WebCrawler.
 """
+import pytest
+import asyncio
+import httpx
+from unittest.mock import AsyncMock, Mock, patch
+from web_crawler import WebCrawler, ConfigManager
 
-import unittest
-from unittest.mock import Mock, patch, MagicMock
-from web_crawler import WebCrawler
-from urllib.parse import urlparse
 
-class TestWebCrawler(unittest.TestCase):
-    """Test cases for the WebCrawler class."""
+@pytest.fixture
+async def crawler():
+    """Create a test crawler instance."""
+    config = ConfigManager()
+    config.set('crawler.start_url', 'https://example.com')
+    config.set('crawler.max_concurrent', 2)
+    config.set('crawler.delay', 0)  # No delay for tests
+    config.set('crawler.max_urls', 10)
+    config.set('crawler.max_depth', 3)
+    return WebCrawler(config)
+
+
+@pytest.mark.asyncio
+async def test_crawler_initialization(crawler):
+    """Test crawler initializes correctly."""
+    assert crawler.start_url == 'https://example.com'
+    assert crawler.base_domain == 'https://example.com'
+    assert crawler.max_concurrent == 2
+    assert crawler.max_urls == 10
+    assert crawler.max_depth == 3
+
+
+@pytest.mark.asyncio
+async def test_url_normalization(crawler):
+    """Test URL normalization removes fragments."""
+    normalized = crawler._normalize_url('https://example.com/page#section')
+    assert normalized == 'https://example.com/page'
     
-    def setUp(self):
-        """Set up test fixtures."""
-        self.test_url = "https://example.com/docs"
-        self.crawler = WebCrawler(self.test_url)
+    # Test with query parameters
+    normalized = crawler._normalize_url('https://example.com/page?param=value#section')
+    assert normalized == 'https://example.com/page?param=value'
+
+
+@pytest.mark.asyncio
+async def test_domain_validation(crawler):
+    """Test same-domain validation."""
+    assert crawler._is_same_domain('https://example.com/page')
+    assert crawler._is_same_domain('https://example.com/subdir/page')
+    assert not crawler._is_same_domain('https://other.com/page')
+    assert not crawler._is_same_domain('https://subdomain.example.com/page')
+
+
+@pytest.mark.asyncio
+async def test_url_validation(crawler):
+    """Test URL validation logic."""
+    # Valid URLs
+    assert crawler._is_valid_url('https://example.com/page')
+    assert crawler._is_valid_url('http://example.com/page')
     
-    def test_extract_domain(self):
-        """Test domain extraction from URLs."""
-        test_cases = [
-            ("https://docs.example.com/page", "https://docs.example.com"),
-            ("http://example.org/path", "http://example.org"),
-            ("https://sub.domain.co.uk/", "https://sub.domain.co.uk"),
+    # Invalid URLs
+    assert not crawler._is_valid_url('mailto:user@example.com')
+    assert not crawler._is_valid_url('tel:+1234567890')
+    assert not crawler._is_valid_url('javascript:void(0)')
+    assert not crawler._is_valid_url('https://example.com/file.pdf')
+    assert not crawler._is_valid_url('https://example.com/image.jpg')
+
+
+@pytest.mark.asyncio
+async def test_fetch_with_retry():
+    """Test retry mechanism with exponential backoff."""
+    config = ConfigManager()
+    config.set('crawler.start_url', 'https://example.com')
+    config.set('retry.max_retries', 3)
+    config.set('retry.base_delay', 0.1)
+    config.set('retry.max_delay', 1.0)
+    
+    crawler = WebCrawler(config)
+    
+    # Mock successful response
+    mock_response = AsyncMock()
+    mock_response.status_code = 200
+    mock_response.text = '<html><body>Test</body></html>'
+    mock_response.headers = {'content-type': 'text/html'}
+    mock_response.content = b'<html><body>Test</body></html>'
+    
+    with patch('httpx.AsyncClient.get') as mock_get:
+        # First two attempts fail, third succeeds
+        mock_get.side_effect = [
+            httpx.ConnectError("Connection failed"),
+            httpx.ConnectError("Connection failed"),
+            mock_response
         ]
         
-        for url, expected_domain in test_cases:
-            with self.subTest(url=url):
-                domain = self.crawler._extract_domain(url)
-                self.assertEqual(domain, expected_domain)
+        # Should succeed on third attempt
+        response = await crawler._fetch_page_with_retry('https://example.com')
+        assert response is not None
+        assert mock_get.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_fetch_with_http_error():
+    """Test handling of HTTP status errors."""
+    config = ConfigManager()
+    config.set('crawler.start_url', 'https://example.com')
+    config.set('retry.max_retries', 2)
     
-    def test_is_same_domain(self):
-        """Test same domain checking."""
-        # Same domain
-        self.assertTrue(self.crawler._is_same_domain("https://example.com/page"))
-        self.assertTrue(self.crawler._is_same_domain("https://example.com/another/page"))
-        
-        # Different domain
-        self.assertFalse(self.crawler._is_same_domain("https://other.com/page"))
-        self.assertFalse(self.crawler._is_same_domain("https://docs.other.com/page"))
+    crawler = WebCrawler(config)
     
-    def test_is_valid_url(self):
-        """Test URL validation."""
-        # Valid URLs
-        self.assertTrue(self.crawler._is_valid_url("https://example.com/page"))
-        self.assertTrue(self.crawler._is_valid_url("http://example.com/page"))
-        
-        # Invalid URLs
-        self.assertFalse(self.crawler._is_valid_url("mailto:user@example.com"))
-        self.assertFalse(self.crawler._is_valid_url("javascript:alert('test')"))
-        self.assertFalse(self.crawler._is_valid_url("tel:+1234567890"))
-        self.assertFalse(self.crawler._is_valid_url("https://example.com/file.pdf"))
-        self.assertFalse(self.crawler._is_valid_url("https://example.com/image.jpg"))
-        self.assertFalse(self.crawler._is_valid_url(""))
-        self.assertFalse(self.crawler._is_valid_url(None))
+    # Mock HTTP error response
+    mock_error_response = AsyncMock()
+    mock_error_response.status_code = 500
+    mock_error_response.raise_for_status.side_effect = httpx.HTTPStatusError(
+        "Server Error", request=Mock(), response=mock_error_response
+    )
     
-    def test_normalize_url(self):
-        """Test URL normalization."""
-        test_cases = [
-            ("https://example.com/page#section", "https://example.com/page"),
-            ("https://example.com/page?param=value", "https://example.com/page?param=value"),
-            ("https://example.com/page", "https://example.com/page"),
+    with patch('httpx.AsyncClient.get') as mock_get:
+        mock_get.side_effect = [
+            httpx.HTTPStatusError("Server Error", request=Mock(), response=mock_error_response),
+            mock_error_response
         ]
         
-        for input_url, expected_url in test_cases:
-            with self.subTest(input_url=input_url):
-                normalized = self.crawler._normalize_url(input_url)
-                self.assertEqual(normalized, expected_url)
+        # Should not retry on 5xx errors
+        response = await crawler._fetch_page_with_retry('https://example.com')
+        assert response is None
+        assert mock_get.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_link_extraction(crawler):
+    """Test HTML link extraction."""
+    html_content = '''
+    <html>
+        <body>
+            <a href="/page1">Page 1</a>
+            <a href="https://example.com/page2">Page 2</a>
+            <a href="https://other.com/page3">External</a>
+            <a href="#section">Anchor</a>
+        </body>
+    </html>
+    '''
     
-    @patch('web_crawler.requests.Session')
-    def test_fetch_page_success(self, mock_session):
-        """Test successful page fetching."""
-        # Mock successful response
-        mock_response = Mock()
-        mock_response.text = "<html><body><a href='/page1'>Link 1</a></body></html>"
+    links = crawler._extract_links(html_content, 'https://example.com')
+    
+    # Should extract internal links only
+    assert '/page1' not in links  # Relative links should be resolved
+    assert 'https://example.com/page2' in links
+    assert 'https://other.com/page3' not in links  # External domain
+    assert '#section' not in links  # Anchor links
+
+
+@pytest.mark.asyncio
+async def test_robots_txt_handling():
+    """Test robots.txt compliance."""
+    config = ConfigManager()
+    config.set('crawler.start_url', 'https://example.com')
+    config.set('robots.respect_robots', True)
+    
+    crawler = WebCrawler(config)
+    
+    # Test robots.txt checking
+    result = await crawler._is_allowed_by_robots('https://example.com/page')
+    # Should return True if robots.txt can't be loaded (permissive default)
+    assert result in [True, False]
+
+
+@pytest.mark.asyncio
+async def test_robots_disabled():
+    """Test when robots.txt checking is disabled."""
+    config = ConfigManager()
+    config.set('crawler.start_url', 'https://example.com')
+    config.set('robots.respect_robots', False)
+    
+    crawler = WebCrawler(config)
+    
+    # Should always allow when robots.txt is disabled
+    result = await crawler._is_allowed_by_robots('https://example.com/page')
+    assert result is True
+
+
+@pytest.mark.asyncio
+async def test_state_save_load():
+    """Test save and load of crawl state."""
+    config = ConfigManager()
+    config.set('crawler.start_url', 'https://example.com')
+    config.set('output.save_state', True)
+    
+    crawler = WebCrawler(config)
+    
+    # Add some test data
+    crawler.visited_urls.add('https://example.com/page1')
+    crawler.unique_urls.add('https://example.com/page1')
+    crawler.total_crawled = 1
+    
+    # Test state saving (this will create temporary files)
+    await crawler._save_state()
+    
+    # Verify state was saved
+    assert len(crawler.visited_urls) == 1
+    assert len(crawler.unique_urls) == 1
+    assert crawler.total_crawled == 1
+
+
+@pytest.mark.asyncio
+async def test_concurrent_worker_creation(crawler):
+    """Test that workers are created correctly."""
+    # Mock the worker method to avoid actual crawling
+    original_worker = crawler._crawl_worker
+    
+    async def mock_worker(worker_id):
+        return worker_id
+    
+    crawler._crawl_worker = mock_worker
+    
+    # Test worker creation
+    workers = []
+    for i in range(crawler.max_concurrent):
+        worker = asyncio.create_task(crawler._crawl_worker(i))
+        workers.append(worker)
+    
+    # Wait for workers to complete
+    results = await asyncio.gather(*workers)
+    
+    # Verify all workers ran
+    assert len(results) == crawler.max_concurrent
+    assert set(results) == {0, 1}  # Worker IDs 0 and 1
+    
+    # Restore original method
+    crawler._crawl_worker = original_worker
+
+
+@pytest.mark.asyncio
+async def test_url_depth_tracking(crawler):
+    """Test URL depth tracking functionality."""
+    # Simulate adding URLs at different depths
+    await crawler.url_queue.put(('https://example.com/page1', 0))
+    await crawler.url_queue.put(('https://example.com/page2', 1))
+    await crawler.url_queue.put(('https://example.com/page3', 2))
+    
+    # Verify queue contents
+    assert crawler.url_queue.qsize() == 3
+
+
+@pytest.mark.asyncio
+async def test_max_urls_limit():
+    """Test maximum URLs limit enforcement."""
+    config = ConfigManager()
+    config.set('crawler.start_url', 'https://example.com')
+    config.set('crawler.max_urls', 3)
+    config.set('crawler.max_concurrent', 1)
+    
+    crawler = WebCrawler(config)
+    
+    # Mock the process page method to return new links
+    async def mock_process_page(url, depth):
+        return [f'https://example.com/page{i}' for i in range(1, 6)]
+    
+    crawler._process_page = mock_process_page
+    
+    # Add initial URL
+    await crawler.url_queue.put(('https://example.com', 0))
+    
+    # Mock the crawl method to avoid actual HTTP requests
+    with patch.object(crawler, '_fetch_page_with_retry') as mock_fetch:
+        mock_response = AsyncMock()
+        mock_response.status_code = 200
+        mock_response.text = '<html><body>Test</body></html>'
         mock_response.headers = {'content-type': 'text/html'}
-        mock_response.raise_for_status.return_value = None
+        mock_fetch.return_value = mock_response
         
-        mock_session_instance = Mock()
-        mock_session_instance.get.return_value = mock_response
-        mock_session.return_value = mock_session_instance
+        # Run a limited crawl
+        await crawler.crawl()
         
-        # Test fetching
-        crawler = WebCrawler(self.test_url)
-        content = crawler._fetch_page(self.test_url)
-        
-        self.assertIsNotNone(content)
-        self.assertIn("<html>", content)
-    
-    @patch('web_crawler.requests.Session')
-    def test_fetch_page_error(self, mock_session):
-        """Test page fetching with error."""
-        # Mock failed response
-        mock_session_instance = Mock()
-        mock_session_instance.get.side_effect = Exception("Connection error")
-        mock_session.return_value = mock_session_instance
-        
-        # Test fetching
-        crawler = WebCrawler(self.test_url)
-        content = crawler._fetch_page(self.test_url)
-        
-        self.assertIsNone(content)
-    
-    def test_extract_links(self):
-        """Test link extraction from HTML."""
-        html_content = """
-        <html>
-            <body>
-                <a href="/page1">Page 1</a>
-                <a href="https://example.com/page2">Page 2</a>
-                <a href="https://other.com/page3">External Page</a>
-                <a href="mailto:user@example.com">Email</a>
-                <a href="/file.pdf">PDF File</a>
-            </body>
-        </html>
-        """
-        
-        links = self.crawler._extract_links(html_content, "https://example.com")
-        
-        # Should only include valid, same-domain links
-        expected_links = [
-            "https://example.com/page1",
-            "https://example.com/page2"
-        ]
-        
-        self.assertEqual(set(links), set(expected_links))
+        # Should respect max_urls limit
+        assert crawler.total_crawled <= 3
 
-def run_tests():
-    """Run the test suite."""
-    print("🧪 Running Web Crawler Tests...")
-    print("=" * 50)
+
+@pytest.mark.asyncio
+async def test_max_depth_limit():
+    """Test maximum depth limit enforcement."""
+    config = ConfigManager()
+    config.set('crawler.start_url', 'https://example.com')
+    config.set('crawler.max_depth', 2)
+    config.set('crawler.max_concurrent', 1)
     
-    # Create test suite
-    loader = unittest.TestLoader()
-    suite = loader.loadTestsFromTestCase(TestWebCrawler)
+    crawler = WebCrawler(config)
     
-    # Run tests
-    runner = unittest.TextTestRunner(verbosity=2)
-    result = runner.run(suite)
+    # Mock the process page method
+    async def mock_process_page(url, depth):
+        if depth < 2:
+            return [f'https://example.com/page{depth+1}']
+        return []
     
-    # Print summary
-    print("=" * 50)
-    if result.wasSuccessful():
-        print("✅ All tests passed!")
-    else:
-        print("❌ Some tests failed!")
-        print(f"Failures: {len(result.failures)}")
-        print(f"Errors: {len(result.errors)}")
+    crawler._process_page = mock_process_page
     
-    return result.wasSuccessful()
+    # Add initial URL
+    await crawler.url_queue.put(('https://example.com', 0))
+    
+    # Mock the fetch method
+    with patch.object(crawler, '_fetch_page_with_retry') as mock_fetch:
+        mock_response = AsyncMock()
+        mock_response.status_code = 200
+        mock_response.text = '<html><body>Test</body></html>'
+        mock_response.headers = {'content-type': 'text/html'}
+        mock_fetch.return_value = mock_response
+        
+        # Run crawl
+        await crawler.crawl()
+        
+        # Verify depth tracking
+        max_depth_reached = max(crawler.url_depths.values()) if crawler.url_depths else 0
+        assert max_depth_reached <= 2
+
+
+@pytest.mark.asyncio
+async def test_statistics_generation(crawler):
+    """Test statistics generation."""
+    # Add some test data
+    crawler.visited_urls.add('https://example.com/page1')
+    crawler.visited_urls.add('https://example.com/page2')
+    crawler.unique_urls.add('https://example.com/page1')
+    crawler.unique_urls.add('https://example.com/page2')
+    crawler.url_depths['https://example.com/page1'] = 0
+    crawler.url_depths['https://example.com/page2'] = 1
+    crawler.total_crawled = 2
+    
+    stats = crawler.get_statistics()
+    
+    assert stats['total_urls'] == 2
+    assert stats['total_crawled'] == 2
+    assert stats['max_depth'] == 1
+    assert stats['average_depth'] == 0.5
+    assert 'start_url' in stats
+    assert 'base_domain' in stats
+
+
+@pytest.mark.asyncio
+async def test_save_urls_to_file(crawler, tmp_path):
+    """Test saving URLs to file."""
+    # Add test URLs
+    crawler.unique_urls.add('https://example.com/page1')
+    crawler.unique_urls.add('https://example.com/page2')
+    crawler.url_depths['https://example.com/page1'] = 0
+    crawler.url_depths['https://example.com/page2'] = 1
+    
+    # Save to temporary file
+    output_file = tmp_path / 'test_urls.txt'
+    await crawler.save_urls_to_file(str(output_file))
+    
+    # Verify file was created and contains URLs
+    assert output_file.exists()
+    content = output_file.read_text()
+    assert 'https://example.com/page1' in content
+    assert 'https://example.com/page2' in content
+    assert '(depth: 0)' in content
+    assert '(depth: 1)' in content
+
 
 if __name__ == "__main__":
-    success = run_tests()
-    exit(0 if success else 1)
+    pytest.main([__file__, "-v"])

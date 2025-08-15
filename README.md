@@ -1,10 +1,73 @@
-# Enterprise-Grade Async Web Crawler
+# Enterprise-Grade Web Crawler
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/your-username/web-crawler)
+[![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)](https://github.com/your-username/web-crawler)
 
-A robust, scalable, and enterprise-ready web crawler designed for scraping developer documentation sites with advanced features including dynamic content handling, state persistence, and comprehensive error handling.
+## ⚡ Performance First
+
+This crawler is built with async/await from the ground up for maximum performance:
+- **100% Asynchronous**: Built on httpx and asyncio
+- **Concurrent Processing**: Configure up to 100+ concurrent workers
+- **Smart Rendering**: Playwright integration for JavaScript-heavy sites
+- **State Persistence**: Resume interrupted crawls without losing progress
+
+## 🚀 Quick Start
+
+### Simple One-Liner
+```python
+from web_crawler import crawl_website
+
+# Crawl a website with a single function call
+urls = crawl_website("https://docs.python.org", max_urls=100)
+```
+
+### Advanced Usage
+```python
+import asyncio
+from web_crawler import WebCrawler, ConfigManager
+
+async def main():
+    config = ConfigManager()
+    config.set('crawler.start_url', 'https://docs.python.org')
+    config.set('crawler.max_concurrent', 20)
+    config.set('dynamic_content.enable_playwright', True)
+    
+    crawler = WebCrawler(config)
+    urls = await crawler.crawl()
+    await crawler.save_urls_to_file('results.txt')
+    
+    print(f"Found {len(urls)} URLs")
+
+asyncio.run(main())
+```
+
+## 🔄 Migration from v2.x
+
+Version 3.0 removes the legacy synchronous crawler. If you're upgrading:
+
+```python
+# Old (v2.x) - No longer supported
+from web_crawler import WebCrawler  # This was sync
+crawler = WebCrawler(url)
+urls = crawler.crawl()
+
+# New (v3.x) - Use async or convenience function
+from web_crawler import crawl_website
+urls = crawl_website(url)  # Simple sync wrapper
+
+# Or use async directly for more control
+import asyncio
+from web_crawler import WebCrawler, ConfigManager
+
+async def crawl():
+    config = ConfigManager()
+    config.set('crawler.start_url', url)
+    crawler = WebCrawler(config)
+    return await crawler.crawl()
+
+urls = asyncio.run(crawl())
+```
 
 ## 🚀 Features
 
@@ -59,50 +122,28 @@ pip install -r requirements-dev.txt
 pip install -e .
 ```
 
-## 🛠️ Quick Start
-
-### Basic Usage
-```python
-import asyncio
-from web_crawler import AsyncWebCrawler, ConfigManager
-
-async def main():
-    # Create configuration
-    config = ConfigManager()
-    config.set('crawler.start_url', 'https://docs.python.org/3/')
-    config.set('crawler.max_urls', 100)
-    
-    # Initialize and run crawler
-    crawler = AsyncWebCrawler(config)
-    unique_urls = await crawler.crawl()
-    
-    # Save results
-    await crawler.save_urls_to_file('results.txt')
-    print(f"Found {len(unique_urls)} unique URLs")
-
-asyncio.run(main())
-```
+## 🛠️ Usage
 
 ### Command Line Usage
 ```bash
 # Basic crawl
-python -m web_crawler.enhanced_cli crawl "https://docs.python.org/3/"
+python -m web_crawler.cli crawl "https://docs.python.org/3/"
 
 # With custom configuration
-python -m web_crawler.enhanced_cli crawl "https://docs.python.org/3/" \
+python -m web_crawler.cli crawl "https://docs.python.org/3/" \
     --max-urls 100 \
     --max-depth 3 \
     --max-concurrent 10 \
     --enable-playwright
 
 # Show configuration
-python -m web_crawler.enhanced_cli config
+python -m web_crawler.cli config
 
 # View statistics
-python -m web_crawler.enhanced_cli stats
+python -m web_crawler.cli stats
 
 # Clean up old data
-python -m web_crawler.enhanced_cli cleanup --days 30
+python -m web_crawler.cli cleanup --days 30
 ```
 
 ## ⚙️ Configuration
@@ -143,7 +184,7 @@ logging:
 ### CLI Configuration Overrides
 All configuration options can be overridden via command line arguments:
 ```bash
-python -m web_crawler.enhanced_cli crawl "https://example.com" \
+python -m web_crawler.cli crawl "https://example.com" \
     --delay 0.5 \
     --max-concurrent 20 \
     --max-urls 1000 \
@@ -284,7 +325,7 @@ SQLite backend provides:
 python examples/enterprise_usage.py
 
 # Test dynamic content handling
-python -m web_crawler.enhanced_cli test "https://example.com" --screenshot --metrics
+python -m web_crawler.cli test "https://example.com" --screenshot --metrics
 ```
 
 ### Development Setup
