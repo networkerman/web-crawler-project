@@ -20,7 +20,7 @@ class ConfigManager:
         'crawler': {
             'start_url': 'https://docs.example.com',
             'delay': 1.0,
-            'timeout': 30,
+            'timeout': 60,
             'max_concurrent': 10,
             'max_urls': 0,
             'max_depth': 0
@@ -32,9 +32,9 @@ class ConfigManager:
         },
         'dynamic_content': {
             'enable_playwright': True,
-            'page_load_timeout': 10000,
-            'network_idle_timeout': 2000,
-            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            'page_load_timeout': 30000,
+            'network_idle_timeout': 10000,
+            'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36'
         },
         'output': {
             'filename': 'crawled_urls.txt',
@@ -51,7 +51,7 @@ class ConfigManager:
         },
         'robots': {
             'respect_robots': True,
-            'user_agent': 'WebCrawler/2.0 (+https://github.com/your-repo)'
+            'user_agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
         },
         'rate_limit': {
             'enabled': True,

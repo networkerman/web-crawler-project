@@ -77,26 +77,64 @@ class DynamicContentHandler:
                     '--no-first-run',
                     '--no-zygote',
                     '--single-process',
-                    '--disable-extensions'
+                    '--disable-extensions',
+                    '--disable-blink-features=AutomationControlled',
+                    '--disable-web-security',
+                    '--disable-features=VizDisplayCompositor',
+                    '--disable-ipc-flooding-protection',
+                    '--disable-background-timer-throttling',
+                    '--disable-backgrounding-occluded-windows',
+                    '--disable-renderer-backgrounding',
+                    '--disable-field-trial-config',
+                    '--disable-back-forward-cache',
+                    '--disable-http2',
+                    '--disable-features=TranslateUI',
+                    '--disable-component-extensions-with-background-pages'
                 ]
             )
             
             self.page = await self.browser.new_page()
             
-            # Set user agent
+            # Configure the page
+            await self._configure_page()
+            
+            logger.info("Playwright browser started successfully")
+        
+        except Exception as e:
+            logger.error(f"Failed to start Playwright browser: {e}")
+            self.enable_playwright = False
+    
+    async def _configure_page(self):
+        """Configure page settings for anti-detection."""
+        try:
+            # Set viewport
+            await self.page.set_viewport_size({'width': 1920, 'height': 1080})
+            
+            # Remove webdriver property to avoid detection
+            await self.page.add_init_script("""
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined,
+                });
+            """)
+            
+            # Set additional headers to appear more like a real browser
+            await self.page.set_extra_http_headers({
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+            })
+            
+            # Set user agent if provided
             if self.user_agent:
                 await self.page.set_extra_http_headers({
                     'User-Agent': self.user_agent
                 })
-            
-            # Set viewport
-            await self.page.set_viewport_size({'width': 1920, 'height': 1080})
-            
-            logger.info("Playwright browser started successfully")
-            
+                
         except Exception as e:
-            logger.error(f"Failed to start Playwright browser: {e}")
-            self.enable_playwright = False
+            logger.error(f"Failed to configure page: {e}")
     
     async def stop(self):
         """Stop the Playwright browser."""
@@ -184,13 +222,14 @@ class DynamicContentHandler:
         
         return False
     
-    async def render_page(self, url: str, html_content: str = None) -> Optional[str]:
+    async def render_page(self, url: str, html_content: str = None, max_retries: int = 2) -> Optional[str]:
         """
         Render a page using Playwright to handle JavaScript.
         
         Args:
             url: The URL to render
             html_content: Optional HTML content (for comparison)
+            max_retries: Maximum number of retry attempts
             
         Returns:
             Rendered HTML content or None if failed
@@ -199,41 +238,71 @@ class DynamicContentHandler:
             logger.warning("Playwright not available for rendering")
             return html_content
         
-        try:
-            logger.info(f"Rendering page with JavaScript: {url}")
-            
-            # Navigate to the page
-            await self.page.goto(url, timeout=self.page_load_timeout)
-            
-            # Wait for network to be idle
-            await self.page.wait_for_load_state('networkidle', timeout=self.network_idle_timeout)
-            
-            # Additional wait for dynamic content
-            await asyncio.sleep(2)
-            
-            # Get the rendered content
-            rendered_content = await self.page.content()
-            
-            # Check if content changed significantly
-            if html_content:
-                original_soup = BeautifulSoup(html_content, 'html.parser')
-                rendered_soup = BeautifulSoup(rendered_content, 'html.parser')
+        for attempt in range(max_retries + 1):
+            try:
+                logger.info(f"Rendering page with JavaScript: {url} (attempt {attempt + 1})")
                 
-                original_text = original_soup.get_text(strip=True)
-                rendered_text = rendered_soup.get_text(strip=True)
+                # Navigate to the page
+                await self.page.goto(url, timeout=self.page_load_timeout)
                 
-                if len(rendered_text) > len(original_text) * 1.5:
-                    logger.info(f"Content significantly enhanced by JavaScript rendering: {url}")
-                    logger.debug(f"Original text length: {len(original_text)}, Rendered: {len(rendered_text)}")
+                # Wait for the page to fully load (more robust than networkidle)
+                await self.page.wait_for_load_state('load', timeout=self.page_load_timeout)
+                
+                # Additional wait for network to be idle (for dynamic content)
+                try:
+                    await self.page.wait_for_load_state('networkidle', timeout=self.network_idle_timeout)
+                except Exception as e:
+                    logger.debug(f"Network idle timeout for {url}: {e}, continuing with current state")
+                
+                # Additional wait for dynamic content to settle
+                await asyncio.sleep(3)
+                
+                # Get the rendered content
+                rendered_content = await self.page.content()
+                
+                # Check if content changed significantly
+                if html_content:
+                    original_soup = BeautifulSoup(html_content, 'html.parser')
+                    rendered_soup = BeautifulSoup(rendered_content, 'html.parser')
+                    
+                    original_text = original_soup.get_text(strip=True)
+                    rendered_text = rendered_soup.get_text(strip=True)
+                    
+                    if len(rendered_text) > len(original_text) * 1.5:
+                        logger.info(f"Content significantly enhanced by JavaScript rendering: {url}")
+                        logger.debug(f"Original text length: {len(original_text)}, Rendered: {len(rendered_text)}")
+                    else:
+                        logger.debug(f"JavaScript rendering provided minimal enhancement: {url}")
+                
+                logger.info(f"Successfully rendered page: {url}")
+                return rendered_content
+                
+            except Exception as e:
+                logger.warning(f"Rendering attempt {attempt + 1} failed for {url}: {e}")
+                
+                if attempt < max_retries:
+                    # Wait before retry with exponential backoff
+                    wait_time = (2 ** attempt) * 2
+                    logger.info(f"Retrying in {wait_time} seconds...")
+                    await asyncio.sleep(wait_time)
+                    
+                    # Try to recover the page state
+                    try:
+                        await self.page.reload(timeout=self.page_load_timeout)
+                    except Exception:
+                        # If reload fails, try to create a new page
+                        try:
+                            await self.page.close()
+                            self.page = await self.browser.new_page()
+                            await self._configure_page()
+                        except Exception as page_error:
+                            logger.error(f"Failed to recover page state: {page_error}")
+                            break
                 else:
-                    logger.debug(f"JavaScript rendering provided minimal enhancement: {url}")
-            
-            logger.info(f"Successfully rendered page: {url}")
-            return rendered_content
-            
-        except Exception as e:
-            logger.error(f"Failed to render page {url}: {e}")
-            return html_content
+                    logger.error(f"All rendering attempts failed for {url}: {e}")
+                    return html_content
+        
+        return html_content
     
     async def extract_links_from_rendered(self, url: str, html_content: str) -> List[str]:
         """

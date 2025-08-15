@@ -10,7 +10,7 @@ crawler:
   delay: 1.0
   
   # Request timeout in seconds
-  timeout: 30
+  timeout: 60
   
   # Maximum number of concurrent requests
   max_concurrent: 10
@@ -38,13 +38,13 @@ dynamic_content:
   enable_playwright: true
   
   # Wait time for page load in milliseconds
-  page_load_timeout: 10000
+  page_load_timeout: 30000
   
   # Wait time for network idle in milliseconds
-  network_idle_timeout: 2000
+  network_idle_timeout: 10000
   
   # User agent for browser
-  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+  user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36"
 
 # Output Settings
 output:
@@ -83,7 +83,7 @@ robots:
   respect_robots: true
   
   # User agent for robots.txt checking
-  user_agent: "WebCrawler/2.0 (+https://github.com/your-repo)"
+  user_agent: "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
 
 # Rate Limiting
 rate_limit:
