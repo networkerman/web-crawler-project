@@ -1,0 +1,35 @@
+{
+  "include": [
+    "src",
+    "tests",
+    "examples"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/*.pyc",
+    "**/.git",
+    "**/.venv",
+    "**/venv",
+    "**/env",
+    "**/.env",
+    "**/build",
+    "**/dist",
+    "**/.pytest_cache",
+    "**/.coverage",
+    "**/htmlcov",
+    "**/.mypy_cache",
+    "**/.ruff_cache",
+    "**/crawler.log",
+    "**/*.txt",
+    "**/*.log"
+  ],
+  "ignore": [],
+  "defineConstant": {},
+  "typeCheckingMode": "basic",
+  "useLibraryCodeForTypes": true,
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "pythonVersion": "3.8",
+  "pythonPlatform": "All"
+}
