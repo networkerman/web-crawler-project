@@ -336,7 +336,7 @@ class WebCrawler:
                 if rendered_content:
                     html_content = rendered_content
                     # Extract links from rendered content
-                    new_links = self.dynamic_handler.extract_links_from_rendered(url, html_content)
+                    new_links = await self.dynamic_handler.extract_links_from_rendered(url, html_content)
                 else:
                     # Fall back to regular link extraction
                     new_links = self._extract_links(html_content, url)
