@@ -200,7 +200,7 @@ def crawl(ctx, url, **kwargs):
         sys.exit(1)
 
 
-async def run_crawl_with_progress(crawler: AsyncWebCrawler):
+async def run_crawl_with_progress(crawler: WebCrawler):
     """Run crawl with progress bar."""
     from tqdm import tqdm
     
@@ -280,7 +280,7 @@ async def run_crawl_with_progress(crawler: AsyncWebCrawler):
             crawler._crawl_worker = original_worker
 
 
-async def run_crawl_simple(crawler: AsyncWebCrawler):
+async def run_crawl_simple(crawler: WebCrawler):
     """Run crawl without progress bar."""
     await crawler.crawl()
 
