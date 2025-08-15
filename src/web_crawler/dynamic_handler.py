@@ -25,10 +25,11 @@ except ImportError:
 class DynamicContentHandler:
     """Handles dynamic content rendering using Playwright."""
     
-    def __init__(self, enable_playwright: bool = True, 
+    def __init__(self, enable_playwright: bool = True,
                  page_load_timeout: int = 10000,
                  network_idle_timeout: int = 2000,
-                 user_agent: str = None):
+                 user_agent: str = None,
+                 stealth_mode: bool = False):
         """
         Initialize the dynamic content handler.
         
@@ -37,11 +38,13 @@ class DynamicContentHandler:
             page_load_timeout: Page load timeout in milliseconds
             network_idle_timeout: Network idle timeout in milliseconds
             user_agent: Custom user agent string
+            stealth_mode: Enable enhanced anti-detection measures
         """
         self.enable_playwright = enable_playwright and PLAYWRIGHT_AVAILABLE
         self.page_load_timeout = page_load_timeout
         self.network_idle_timeout = network_idle_timeout
         self.user_agent = user_agent or "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        self.stealth_mode = stealth_mode
         
         self.browser: Optional[Browser] = None
         self.page: Optional[Page] = None
@@ -89,7 +92,8 @@ class DynamicContentHandler:
                     '--disable-back-forward-cache',
                     '--disable-http2',
                     '--disable-features=TranslateUI',
-                    '--disable-component-extensions-with-background-pages'
+                    '--disable-component-extensions-with-background-pages',
+                    '--incognito'
                 ]
             )
             
@@ -97,6 +101,9 @@ class DynamicContentHandler:
             
             # Configure the page
             await self._configure_page()
+            
+            # Add a longer wait after launch to simulate human behavior
+            await asyncio.sleep(5)
             
             logger.info("Playwright browser started successfully")
         
@@ -135,6 +142,24 @@ class DynamicContentHandler:
                 
         except Exception as e:
             logger.error(f"Failed to configure page: {e}")
+    
+    async def _simulate_human_behavior(self):
+        """Simulate human-like behavior to avoid detection."""
+        try:
+            # Random mouse movements (subtle)
+            await self.page.mouse.move(100, 100)
+            await asyncio.sleep(0.5)
+            await self.page.mouse.move(200, 150)
+            await asyncio.sleep(0.3)
+            
+            # Simulate scrolling behavior
+            await self.page.evaluate("window.scrollTo(0, 100)")
+            await asyncio.sleep(0.8)
+            await self.page.evaluate("window.scrollTo(0, 0)")
+            await asyncio.sleep(0.5)
+            
+        except Exception as e:
+            logger.debug(f"Human behavior simulation failed: {e}")
     
     async def stop(self):
         """Stop the Playwright browser."""
@@ -256,6 +281,9 @@ class DynamicContentHandler:
                 
                 # Additional wait for dynamic content to settle
                 await asyncio.sleep(3)
+                
+                # Simulate human behavior to avoid detection
+                await self._simulate_human_behavior()
                 
                 # Get the rendered content
                 rendered_content = await self.page.content()
